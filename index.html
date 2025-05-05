@@ -1,0 +1,35 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Juego Móvil Mejorado</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="cover-section">
+        <img id="cover-image" src="https://i.postimg.cc/k5nK3xrY/clicks.png" alt="Portada del Juego">
+        <div id="button-container">
+            <button id="play-button">Jugar</button>
+        </div>
+    </div>
+
+    <div id="challenge-section" class="hidden">
+        <div id="player">
+            <img id="player-image" src="https://i.postimg.cc/25fLdn88/Dise-o-sin-t-tulo.png" alt="Jugador">
+        </div>
+        <div id="score-display">Puntaje: 0</div>
+        </div>
+
+    <div id="modal" class="hidden">
+        <div class="modal-content">
+            <h2>¡Fin del Juego!</h2>
+            <p id="final-score">Puntaje: 0</p>
+            <p>¡Vuelve a Intentar!</p>
+            <button id="retry-button">Reiniciar</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
