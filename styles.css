@@ -98,15 +98,16 @@ html, body {
 /* En styles.css */
 #player {
     position: absolute;
-    /* Posición inicial: Centrado con CSS (más fiable inicialmente) */
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    /* QUITAR CENTRADO CSS: JS se encargará de la posición inicial */
+    /* left: 50%; */
+    /* top: 50%; */
+    /* transform: translate(-50%, -50%); */
+
     /* Resto de estilos: width, max-width, height, touch-action, etc. */
     width: 12vw;
     max-width: 60px;
     height: auto;
-    touch-action: none;
+    touch-action: none; /* MUY importante para el arrastre táctil */
     user-select: none;
     -webkit-user-drag: none;
     z-index: 30;
