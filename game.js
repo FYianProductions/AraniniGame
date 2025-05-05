@@ -1,7 +1,7 @@
-// ***** USA ESTE CÓDIGO game.js *****
+// ***** game.js - Aplicando correcciones robustas para iOS *****
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Referencias y Estado (Sin cambios) ---
-    console.log(">>> DOMContentLoaded: Script start.");
+    // --- Referencias ---
+    console.log("Script Cargado."); // Log simple de carga
     const coverSection = document.getElementById('cover-section');
     const playButton = document.getElementById('play-button');
     const challengeSection = document.getElementById('challenge-section');
@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modal');
     const retryButton = document.getElementById('retry-button');
     const finalScoreDisplay = document.getElementById('final-score');
+
+    // --- Estado ---
     let gameActive = false;
     let score = 0;
     let playerPosX = 0, playerPosY = 0;
@@ -24,44 +26,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Lógica de Inicio ---
     function startGameTransition() {
-        console.log(">>> startGameTransition: Called."); // LOG
-        if (gameActive || gameJustStarted) {
-             console.log(">>> startGameTransition: Blocked (gameActive or gameJustStarted)");
-             return;
-        }
-        console.log(">>> startGameTransition: Initiating transition...");
+        if (gameActive || gameJustStarted) return;
+        console.log("Iniciando Transición al Juego...");
         gameJustStarted = true;
 
         coverSection.classList.add('hidden');
         challengeSection.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
 
-        // Llamar a initializeGame DESPUÉS de mostrar la sección
-        console.log(">>> startGameTransition: Calling initializeGame..."); // LOG
         initializeGame();
-        console.log(">>> startGameTransition: initializeGame returned."); // LOG
 
-        setTimeout(() => {
-             console.log(">>> startGameTransition: Resetting gameJustStarted flag.");
-             gameJustStarted = false;
-        }, 100);
+        setTimeout(() => { gameJustStarted = false; }, 100); // Resetear flag
     }
 
-    // Event listener para el botón "Jugar" - RESTAURADO
     if (playButton) {
-        playButton.addEventListener('click', startGameTransition); // Usa la función real
-        console.log(">>> startGameTransition listener ATTACHED to playButton.");
+        playButton.addEventListener('click', startGameTransition);
     } else {
-        console.error(">>> FATAL ERROR: playButton element NOT FOUND!");
+        console.error("Botón Jugar no encontrado!");
     }
+    // Scroll listener sigue comentado
 
-    // Scroll Listener (Sigue comentado)
-    console.log(">>> Scroll listener remains disabled.");
-
-    // --- 2. Lógica de Inicialización y Reinicio ---
+    // --- 2. Inicialización / Reinicio ---
     function initializeGame() {
-        console.log(">>> initializeGame: START");
-        gameActive = false; // Asegurar inactivo antes de empezar
+        console.log("Inicializando Juego...");
+        gameActive = false; // Asegurar inactivo durante configuración
 
         score = 0;
         emojiSpeedMultiplier = 1.0;
@@ -72,204 +60,255 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         emojis = [];
-        console.log(">>> initializeGame: State reset (score, speed, emojis).");
 
-        updateScoreDisplay(); // Actualizar a 0
-        clearAllIntervals();
-        console.log(">>> initializeGame: Intervals cleared.");
+        updateScoreDisplay(); // Poner puntaje a 0
+        clearAllIntervals(); // Limpiar timers anteriores
 
-        // Posicionar jugador
-        console.log(">>> initializeGame: Calling resetPlayerPosition..."); // LOG ANTES
-        resetPlayerPosition();
-        console.log(">>> initializeGame: resetPlayerPosition returned."); // LOG DESPUÉS
+        resetPlayerPosition(); // Posicionar jugador (usa la nueva lógica abajo)
 
-        // Iniciar intervalos
-        console.log(">>> initializeGame: Setting intervals...");
-        intervals.score = setInterval(updateScore, 1000);
-        intervals.spawn = setInterval(spawnEmoji, 5000);
-        intervals.speed = setInterval(increaseSpeed, 20000);
-        console.log(">>> initializeGame: Intervals IDs:", intervals);
+        // ***** CORRECCIÓN: Retrasar inicio de intervalos *****
+        setTimeout(() => {
+            // Verificar si el juego sigue activo (por si acaso)
+            if (gameActive) {
+                 console.log("Iniciando Intervalos (retrasado)...");
+                 intervals.score = setInterval(updateScore, 1000);
+                 intervals.spawn = setInterval(spawnEmoji, 5000); // Ahora debería funcionar mejor
+                 intervals.speed = setInterval(increaseSpeed, 20000);
+                 console.log("Intervalos Programados:", intervals);
+            } else {
+                console.log("Inicio de intervalos omitido - juego no activo.");
+            }
+        }, 50); // Pequeño retraso de 50ms
 
         // Iniciar bucle de juego
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            console.log(">>> initializeGame: Previous animation frame cancelled.");
-        }
-        console.log(">>> initializeGame: Requesting first gameLoop frame..."); // LOG ANTES
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(gameLoop);
-        console.log(">>> initializeGame: First gameLoop frame requested (ID:", animationFrameId, ")"); // LOG DESPUÉS
 
-        // Activar juego AL FINAL
+        // Activar estado del juego AL FINAL
         gameActive = true;
-        console.log(">>> initializeGame: FINISHED - gameActive set to true."); // LOG FIN
+        console.log("Juego Inicializado. gameActive = true");
     }
 
-    // RESET PLAYER POSITION (Calculado en rAF)
+    // ***** CORRECCIÓN: Usar window.innerHeight para centrado vertical *****
     function resetPlayerPosition() {
-        console.log(">>> resetPlayerPosition: Requesting frame...");
-        requestAnimationFrame(() => {
-            console.log(">>> resetPlayerPosition: rAF callback executing...");
+        console.log("Reseteando Posición del Jugador...");
+        requestAnimationFrame(() => { // Esperar al frame para dimensiones
             try {
-                player.style.transform = '';
+                player.style.transform = ''; // Limpiar transform por si acaso
 
                 const containerWidth = challengeSection.offsetWidth;
-                const containerHeight = challengeSection.offsetHeight;
+                // Usar altura de la ventana para cálculo vertical
+                const viewHeight = window.innerHeight;
                 const playerWidth = player.offsetWidth;
                 const playerHeight = player.offsetHeight;
 
-                console.log(`>>> resetPlayerPosition: Dimensions C(${containerWidth}x${containerHeight}), P(${playerWidth}x${playerHeight})`);
-
-                if (containerWidth > 0 && containerHeight > 0 && playerWidth > 0 && playerHeight > 0) {
+                // Calcular centro usando dimensiones, pero viewHeight para Y
+                if (containerWidth > 0 && viewHeight > 0 && playerWidth > 0 && playerHeight > 0) {
                     playerPosX = containerWidth / 2 - playerWidth / 2;
-                    playerPosY = containerHeight / 2 - playerHeight / 2;
+                    playerPosY = viewHeight / 2 - playerHeight / 2; // <<< USA viewHeight
+
+                    // Asegurar que no sean negativos
                     playerPosX = Math.max(0, playerPosX);
                     playerPosY = Math.max(0, playerPosY);
 
                     player.style.left = `${playerPosX}px`;
                     player.style.top = `${playerPosY}px`;
-                    console.log(`>>> resetPlayerPosition: Position calculated and set to (${playerPosX.toFixed(0)}, ${playerPosY.toFixed(0)})`);
+                    console.log(`Posición Jugador Reseteada a (${playerPosX.toFixed(0)}, ${playerPosY.toFixed(0)})`);
                 } else {
-                    console.warn(">>> resetPlayerPosition: Invalid dimensions detected! Setting fallback.");
-                    playerPosX = 50; playerPosY = 50;
+                    console.warn("Dimensiones inválidas al resetear jugador. Usando fallback.");
+                    playerPosX = 50; playerPosY = 50; // Posición segura
                     player.style.left = `${playerPosX}px`; player.style.top = `${playerPosY}px`;
                 }
             } catch (error) {
-                console.error(">>> ERROR in resetPlayerPosition rAF:", error);
-                player.style.left = '10px'; player.style.top = '10px';
+                console.error("Error reseteando posición del jugador:", error);
+                player.style.left = '10px'; player.style.top = '10px'; // Fallback absoluto
             }
         });
     }
 
-    function restartGame() { console.log(">>> restartGame called"); initializeGame(); } // Simplificado para log
-     if (retryButton) {
-        retryButton.addEventListener('click', restartGame);
-     } else {
-         console.error("Retry button not found");
-     }
+    function restartGame() {
+        console.log("Reiniciando Juego...");
+        modal.classList.add('hidden');
+        initializeGame();
+    }
+     if (retryButton) { retryButton.addEventListener('click', restartGame); }
 
 
-    // --- 3. Lógica del Jugador (Arrastrar) ---
+    // --- 3. Lógica de Arrastre del Jugador ---
      function startDrag(event) {
-        console.log(`>>> startDrag: Event ${event.type}`); // LOG EVENTO
-        if (!gameActive) {
-            console.log(">>> startDrag: Ignored (game not active)"); // LOG IGNORADO
-            return;
-        }
+        if (!gameActive) return;
         isDragging = true;
         player.style.cursor = 'grabbing';
         const touch = event.type === 'touchstart' ? event.touches[0] : event;
         dragStartX = touch.clientX;
         dragStartY = touch.clientY;
+        // Leer posición actual al inicio del arrastre
         playerStartDragX = player.offsetLeft;
         playerStartDragY = player.offsetTop;
-        console.log(`>>> startDrag: Dragging set to true. Start: ${dragStartX.toFixed(0)},${dragStartY.toFixed(0)}`); // LOG INICIO DRAG
-        event.preventDefault(); // Asegurar preventDefault
+        event.preventDefault();
     }
 
     function drag(event) {
-        // console.log(`>>> drag: Event ${event.type}`); // Demasiado ruidoso usualmente
         if (!isDragging || !gameActive) return;
         const touch = event.type === 'touchmove' ? event.touches[0] : event;
         const deltaX = touch.clientX - dragStartX;
-        const deltaY = touch.clientY - dragStartY;
+        const deltaY = touch.clientY - dragStartY; // Calcular delta Y
         let newX = playerStartDragX + deltaX;
-        let newY = playerStartDragY + deltaY;
-        const maxX = challengeSection.offsetWidth - player.offsetWidth;
-        const maxY = challengeSection.offsetHeight - player.offsetHeight;
+        let newY = playerStartDragY + deltaY; // Calcular nueva Y
+
+        const playerWidth = player.offsetWidth;
+        const playerHeight = player.offsetHeight;
+
+        // ***** CORRECCIÓN: Usar window.innerHeight para límite vertical (maxY) *****
+        const maxX = challengeSection.offsetWidth - playerWidth;
+        const maxY = window.innerHeight - playerHeight; // <<< USA window.innerHeight
+
+        // Aplicar límites
         playerPosX = Math.max(0, Math.min(newX, maxX));
-        playerPosY = Math.max(0, Math.min(newY, maxY));
+        playerPosY = Math.max(0, Math.min(newY, maxY)); // <<< USA maxY calculado con window.innerHeight
+
+        // Actualizar posición
         player.style.left = `${playerPosX}px`;
-        player.style.top = `${playerPosY}px`;
-        event.preventDefault(); // Asegurar preventDefault
+        player.style.top = `${playerPosY}px`; // <<< Ahora debería permitir movimiento vertical
+        event.preventDefault();
     }
 
     function endDrag(event) {
-        if (!isDragging) return; // Prevenir error si no estaba arrastrando
-        console.log(`>>> endDrag: Event ${event.type}`); // LOG EVENTO
+        if (!isDragging) return;
         isDragging = false;
         player.style.cursor = 'grab';
-        console.log(">>> endDrag: Dragging set to false."); // LOG FIN DRAG
     }
-    // Listeners de drag
+    // Listeners de Arrastre
      if(challengeSection) {
+        // ... (listeners mousedown, mousemove, mouseup) ...
         challengeSection.addEventListener('mousedown', startDrag);
         challengeSection.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', endDrag);
+        // ... (listeners touchstart, touchmove, touchend) ...
         challengeSection.addEventListener('touchstart', startDrag, { passive: false });
         challengeSection.addEventListener('touchmove', drag, { passive: false });
         document.addEventListener('touchend', endDrag);
-     } else {
-         console.error("Challenge section not found for drag listeners");
-     }
+     } else { console.error("Challenge section no encontrada para listeners de drag"); }
 
 
     // --- 4. Lógica de Emojis ---
-    function spawnEmoji() { /* ... código anterior ... */ }
-    function moveAndBounceEmojis() { /* ... código anterior ... */ }
-    function increaseSpeed() { /* ... código anterior ... */ }
+    //    (Usaremos window.innerHeight aquí también para consistencia en límites)
+    function spawnEmoji() {
+        if (!gameActive) return;
+        const emojiElement = document.createElement('div');
+        emojiElement.classList.add('fire-emoji');
+        emojiElement.textContent = '🔥';
+        const tempSizeStyle = window.getComputedStyle(emojiElement).fontSize;
+        const emojiSize = parseFloat(tempSizeStyle) * 1.2 || 32; // Estimar tamaño
 
+        let startX, startY, angle;
+        const edge = Math.floor(Math.random() * 4);
+        const gameWidth = challengeSection.offsetWidth;
+        const gameHeight = window.innerHeight; // <<< Usar altura de ventana
 
-    // --- 5. Lógica de Puntaje y Colisiones ---
+        switch (edge) {
+             case 0: startX = Math.random()*(gameWidth-emojiSize); startY = -emojiSize; angle = Math.random()*Math.PI; break;
+             case 1: startX = gameWidth; startY = Math.random()*(gameHeight-emojiSize); angle = Math.random()*Math.PI+Math.PI/2; break;
+             case 2: startX = Math.random()*(gameWidth-emojiSize); startY = gameHeight; angle = Math.random()*Math.PI+Math.PI; break;
+             case 3: startX = -emojiSize; startY = Math.random()*(gameHeight-emojiSize); angle = Math.random()*Math.PI-Math.PI/2; break;
+        }
+        const baseSpeed = 2.5;
+        let speed = baseSpeed * emojiSpeedMultiplier;
+        let dx = Math.cos(angle) * speed; let dy = Math.sin(angle) * speed;
+        // Asegurar dirección inicial correcta
+        if (edge === 0 && dy < 0) dy = Math.abs(dy); if (edge === 1 && dx > 0) dx = -Math.abs(dx);
+        if (edge === 2 && dy > 0) dy = -Math.abs(dy); if (edge === 3 && dx < 0) dx = Math.abs(dx);
+
+        emojiElement.style.left = `${startX}px`; emojiElement.style.top = `${startY}px`;
+        challengeSection.appendChild(emojiElement);
+        emojis.push({ element: emojiElement, x: startX, y: startY, dx, dy, size: emojiSize });
+    }
+
+    function moveAndBounceEmojis() {
+        const gameWidth = challengeSection.offsetWidth;
+        const gameHeight = window.innerHeight; // <<< Usar altura de ventana para rebote
+        emojis.forEach((emojiObj) => {
+            emojiObj.x += emojiObj.dx; emojiObj.y += emojiObj.dy;
+            const maxX = gameWidth - emojiObj.size;
+            const maxY = gameHeight - emojiObj.size; // <<< Límite Y basado en ventana
+            // Lógica de rebote y clamp (sin cambios en la lógica, solo usa maxY actualizado)
+            if (emojiObj.x <= 0 || emojiObj.x >= maxX) { emojiObj.dx *= -1; emojiObj.x = Math.max(0, Math.min(emojiObj.x, maxX)); }
+            if (emojiObj.y <= 0 || emojiObj.y >= maxY) { emojiObj.dy *= -1; emojiObj.y = Math.max(0, Math.min(emojiObj.y, maxY)); }
+            emojiObj.element.style.left = `${emojiObj.x}px`; emojiObj.element.style.top = `${emojiObj.y}px`;
+        });
+    }
+    function increaseSpeed() {
+        // (Sin cambios)
+        if (!gameActive) return;
+        emojiSpeedMultiplier *= 1.12;
+        const baseSpeed = 2.5;
+        const targetBaseSpeed = baseSpeed * emojiSpeedMultiplier;
+        emojis.forEach(emojiObj => {
+             const currentSpeed = Math.sqrt(emojiObj.dx**2 + emojiObj.dy**2);
+             if (currentSpeed > 0) {
+                 const scaleFactor = targetBaseSpeed / currentSpeed;
+                 emojiObj.dx *= scaleFactor; emojiObj.dy *= scaleFactor;
+             }
+        });
+     }
+
+    // --- 5. Puntaje / Colisiones ---
     function updateScore() {
-        // console.log(">>> updateScore called"); // Demasiado ruidoso
         if (!gameActive) return;
         score++;
         updateScoreDisplay();
     }
     function updateScoreDisplay() { scoreDisplay.textContent = `Puntaje: ${score}`; }
-    function checkCollisions() { /* ... código anterior ... */ }
+    function checkCollisions() {
+        // (Sin cambios aquí, getBoundingClientRect debería funcionar bien)
+        if (!gameActive) return;
+        const playerRect = player.getBoundingClientRect();
+        for (let i = 0; i < emojis.length; i++) {
+            const emojiObj = emojis[i];
+            const emojiRect = emojiObj.element.getBoundingClientRect();
+            if ( playerRect.left < emojiRect.right && playerRect.right > emojiRect.left &&
+                 playerRect.top < emojiRect.bottom && playerRect.bottom > emojiRect.top ) {
+                gameOver(); return;
+            }
+        }
+     }
 
-
-    // --- 6. Bucle Principal del Juego y Game Over ---
+    // --- 6. Bucle Principal / Game Over ---
     function gameLoop() {
-        console.log(">>> gameLoop: Frame executing. gameActive:", gameActive); // LOG INICIO BUCLE
-        if (!gameActive) {
-            console.log(">>> gameLoop: Stopping (game not active).");
-            animationFrameId = null;
-            return;
-        }
-
+        if (!gameActive) { animationFrameId = null; return; } // Detener si no está activo
         try {
-            moveAndBounceEmojis();
-            checkCollisions();
+            moveAndBounceEmojis(); // Mover emojis (usa window.innerHeight para límites Y)
+            checkCollisions();    // Comprobar colisiones
         } catch (error) {
-            console.error(">>> ERROR in gameLoop execution:", error);
-            gameOver();
+            console.error("ERROR en gameLoop:", error);
+            gameOver(); // Detener en caso de error
             return;
         }
-
+        // Solicitar siguiente frame SOLO si sigue activo
         if (gameActive) {
             animationFrameId = requestAnimationFrame(gameLoop);
         } else {
-             console.log(">>> gameLoop: Not requesting next frame as game became inactive.");
              animationFrameId = null;
         }
     }
 
     function gameOver() {
-        if (!gameActive) return;
-        console.log(">>> gameOver: GAME OVER initiated.");
+        if (!gameActive) return; // Prevenir llamadas múltiples
+        console.log("GAME OVER.");
         gameActive = false;
         isDragging = false;
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-            console.log(">>> gameOver: Animation frame cancelled.");
-        }
-        clearAllIntervals();
-        console.log(">>> gameOver: Intervals cleared.");
+        if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+        clearAllIntervals(); // Detener timers
         finalScoreDisplay.textContent = `Puntaje: ${score}`;
-        modal.classList.remove('hidden');
-        console.log(">>> gameOver: Modal displayed.");
+        modal.classList.remove('hidden'); // Mostrar modal
     }
 
     function clearAllIntervals() {
-        clearInterval(intervals.score);
-        clearInterval(intervals.spawn);
-        clearInterval(intervals.speed);
+        console.log("Limpiando intervalos...");
+        clearInterval(intervals.score); clearInterval(intervals.spawn); clearInterval(intervals.speed);
         intervals.score = null; intervals.spawn = null; intervals.speed = null;
     }
 
-    console.log(">>> DOMContentLoaded: Script end."); // DEBUG
+    console.log("Configuración del Script Completa."); // Log final
 
 }); // Fin del DOMContentLoaded
