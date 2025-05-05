@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Referencias a elementos del DOM ---
     const coverSection = document.getElementById('cover-section');
     const playButton = document.getElementById('play-button');
-    const challengeSection = document.getElementById('challenge-section'); // Renombrado
+    const challengeSection = document.getElementById('challenge-section');
     const player = document.getElementById('player');
     const scoreDisplay = document.getElementById('score-display');
     const modal = document.getElementById('modal');
@@ -12,53 +12,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Estado del Juego ---
     let gameActive = false;
     let score = 0;
-    let playerPosX = 0; // Posición X actual del jugador
-    let playerPosY = 0; // Posición Y actual del jugador
+    let playerPosX = 0;
+    let playerPosY = 0;
     let isDragging = false;
-    let dragStartX = 0; // Posición inicial del toque/mouse al arrastrar
+    let dragStartX = 0;
     let dragStartY = 0;
-    let playerStartDragX = 0; // Posición inicial del jugador al arrastrar
+    let playerStartDragX = 0;
     let playerStartDragY = 0;
-    let emojis = []; // Array para almacenar objetos { element, x, y, dx, dy, size }
+    let emojis = [];
     let emojiSpeedMultiplier = 1.0;
-    let intervals = { // Almacena IDs de intervalos para limpiarlos
+    let intervals = {
         score: null,
         spawn: null,
         speed: null
     };
-    let animationFrameId = null; // ID para el bucle del juego con requestAnimationFrame
-    let gameJustStarted = false; // Flag para evitar inicio múltiple por scroll+click
+    let animationFrameId = null;
+    let gameJustStarted = false;
 
     // --- 1. Lógica de Inicio (Portada -> Reto) ---
 
-    // Función para iniciar el juego (llamada por botón o scroll)
     function startGameTransition() {
-        // Evita iniciar si ya está activo o si acabamos de empezar (doble trigger)
         if (gameActive || gameJustStarted) return;
         console.log("Iniciando transición al juego...");
-        gameJustStarted = true; // Prevenir inicio múltiple inmediato
+        gameJustStarted = true;
 
-        // Ocultar portada, mostrar sección del reto
         coverSection.classList.add('hidden');
         challengeSection.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // Ocultar scroll del body
+        document.body.style.overflow = 'hidden';
 
-        initializeGame(); // Configura e inicia la lógica del juego
+        initializeGame();
 
-        // Pequeño delay para resetear el flag y permitir reinicios futuros
         setTimeout(() => { gameJustStarted = false; }, 100);
     }
 
-    // Event listener para el botón "Jugar"
     playButton.addEventListener('click', startGameTransition);
 
-    // Event listener para iniciar con scroll (Opcional)
     let scrollTriggered = false;
     function checkScrollToStart() {
         if (!gameActive && !scrollTriggered && window.scrollY > 100) {
-            scrollTriggered = true; // Evitar que se dispare múltiples veces
+            scrollTriggered = true;
             startGameTransition();
-            window.removeEventListener('scroll', checkScrollToStart); // Remover listener una vez iniciado
+            window.removeEventListener('scroll', checkScrollToStart);
         }
     }
     window.addEventListener('scroll', checkScrollToStart);
@@ -71,51 +65,81 @@ document.addEventListener('DOMContentLoaded', () => {
         gameActive = true;
         score = 0;
         emojiSpeedMultiplier = 1.0;
-        emojis.forEach(emojiObj => emojiObj.element.remove()); // Limpiar emojis anteriores del DOM
-        emojis = []; // Limpiar array de emojis
+        emojis.forEach(emojiObj => emojiObj.element.remove());
+        emojis = [];
 
-        resetPlayerPosition(); // Colocar al jugador en el centro
-        updateScoreDisplay(); // Mostrar puntaje inicial (0)
+        resetPlayerPosition(); // <<< LLAMA A LA FUNCIÓN MODIFICADA
+        updateScoreDisplay();
 
-        // Limpiar intervalos anteriores (importante para reinicios)
         clearAllIntervals();
 
-        // Empezar nuevos intervalos
-        intervals.score = setInterval(updateScore, 1000); // Actualizar puntaje cada segundo
-        intervals.spawn = setInterval(spawnEmoji, 5000); // Generar emoji cada 5 segundos
-        intervals.speed = setInterval(increaseSpeed, 20000); // Aumentar velocidad cada 20 segundos
+        intervals.score = setInterval(updateScore, 1000);
+        intervals.spawn = setInterval(spawnEmoji, 5000);
+        intervals.speed = setInterval(increaseSpeed, 20000);
 
-        // Cancelar frame anterior si existe (importante para reinicios)
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
-        // Iniciar el bucle principal del juego
         animationFrameId = requestAnimationFrame(gameLoop);
 
         console.log("Juego iniciado/reiniciado.");
     }
 
+    // ***** MODIFICACIÓN CLAVE *****
     function resetPlayerPosition() {
-        // Centrar al jugador en la sección del reto
-        playerPosX = challengeSection.offsetWidth / 2 - player.offsetWidth / 2;
-        playerPosY = challengeSection.offsetHeight / 2 - player.offsetHeight / 2;
-        player.style.left = `${playerPosX}px`;
-        player.style.top = `${playerPosY}px`;
-    }
+        // Espera al siguiente frame de animación antes de calcular/establecer posición
+        requestAnimationFrame(() => {
+            try {
+                // Verifica si el contenedor tiene dimensiones válidas
+                if (challengeSection.offsetWidth > 0 && challengeSection.offsetHeight > 0) {
+                    const playerWidth = player.offsetWidth;
+                    const playerHeight = player.offsetHeight;
 
-    // Función llamada por el botón "Reiniciar" del modal
+                    // Calcula la posición central
+                    playerPosX = challengeSection.offsetWidth / 2 - playerWidth / 2;
+                    playerPosY = challengeSection.offsetHeight / 2 - playerHeight / 2;
+
+                    // Asegura que las posiciones no sean inválidas (NaN, negativas)
+                    // Esto es una salvaguarda extra
+                    playerPosX = Math.max(0, playerPosX || 0);
+                    playerPosY = Math.max(0, playerPosY || 0);
+
+                    // Aplica la posición calculada
+                    player.style.left = `${playerPosX}px`;
+                    player.style.top = `${playerPosY}px`;
+
+                    console.log(`Player position set via rAF: (${playerPosX.toFixed(0)}, ${playerPosY.toFixed(0)})`);
+
+                } else {
+                    // Si las dimensiones aún no están listas, loguea un aviso.
+                    // Podría implementarse un reintento si esto falla consistentemente.
+                    console.warn("Challenge section dimensions not ready in rAF callback.");
+                    // Intenta ponerlo en una posición segura por defecto si falla el cálculo
+                    player.style.left = '50%';
+                    player.style.top = '50%';
+                    player.style.transform = 'translate(-50%, -50%)'; // Usa CSS como fallback
+                }
+            } catch (error) {
+                console.error("Error in resetPlayerPosition inside rAF:", error);
+                 // Fallback muy básico si todo falla
+                 player.style.left = '10px';
+                 player.style.top = '10px';
+            }
+        });
+    }
+    // ***** FIN DE LA MODIFICACIÓN *****
+
+
     function restartGame() {
         console.log("Reiniciando juego desde modal...");
-        modal.classList.add('hidden'); // Ocultar el modal
-        initializeGame(); // Reutilizar la lógica de inicialización
+        modal.classList.add('hidden');
+        initializeGame();
     }
 
-    // Event listener para el botón "Reiniciar"
     retryButton.addEventListener('click', restartGame);
 
     // --- 3. Lógica del Jugador (Arrastrar en toda la pantalla) ---
-    // (Esta sección permanece igual que en la versión anterior)
-
+    // (Sin cambios aquí)
     function startDrag(event) {
         if (!gameActive) return;
         isDragging = true;
@@ -166,16 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- 4. Lógica de Emojis (Generación, Movimiento, Velocidad) ---
-    // (Movimiento y Rebote restaurados a la versión 1)
-
-    function spawnEmoji() {
+    // (Restaurada a la versión 1 en la respuesta anterior - sin cambios aquí)
+     function spawnEmoji() {
         if (!gameActive) return;
 
         const emojiElement = document.createElement('div');
         emojiElement.classList.add('fire-emoji');
         emojiElement.textContent = '🔥';
 
-        // Estimar tamaño basado en CSS (igual que antes)
         const tempSizeStyle = window.getComputedStyle(emojiElement).fontSize;
         const emojiSize = parseFloat(tempSizeStyle) * 1.2 || 32;
 
@@ -185,42 +207,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameWidth = challengeSection.offsetWidth;
         const gameHeight = challengeSection.offsetHeight;
 
-        // Posición inicial aleatoria en uno de los bordes (igual que antes)
         switch (edge) {
-             case 0: // Top
+             case 0:
                 startX = Math.random() * (gameWidth - emojiSize);
-                startY = -emojiSize; // Ligeramente fuera para que entre
-                angle = Math.random() * Math.PI; // Ángulo hacia abajo (0 a PI)
+                startY = -emojiSize;
+                angle = Math.random() * Math.PI;
                 break;
-            case 1: // Right
-                startX = gameWidth; // Ligeramente fuera
+            case 1:
+                startX = gameWidth;
                 startY = Math.random() * (gameHeight - emojiSize);
-                angle = Math.random() * Math.PI + Math.PI / 2; // Ángulo hacia la izquierda (PI/2 a 3PI/2)
+                angle = Math.random() * Math.PI + Math.PI / 2;
                 break;
-            case 2: // Bottom
+            case 2:
                 startX = Math.random() * (gameWidth - emojiSize);
-                startY = gameHeight; // Ligeramente fuera
-                angle = Math.random() * Math.PI + Math.PI; // Ángulo hacia arriba (PI a 2PI)
+                startY = gameHeight;
+                angle = Math.random() * Math.PI + Math.PI;
                 break;
-            case 3: // Left
-                startX = -emojiSize; // Ligeramente fuera
+            case 3:
+                startX = -emojiSize;
                 startY = Math.random() * (gameHeight - emojiSize);
-                angle = Math.random() * Math.PI - Math.PI / 2; // Ángulo hacia la derecha (-PI/2 a PI/2)
+                angle = Math.random() * Math.PI - Math.PI / 2;
                 break;
         }
 
-        const baseSpeed = 2.5; // Mantenemos la velocidad base ajustada
+        const baseSpeed = 2.5;
         let speed = baseSpeed * emojiSpeedMultiplier;
         let dx = Math.cos(angle) * speed;
         let dy = Math.sin(angle) * speed;
 
-        // Asegurar que el emoji se mueva hacia adentro inicialmente (igual que antes)
         if (edge === 0 && dy < 0) dy = Math.abs(dy);
         if (edge === 1 && dx > 0) dx = -Math.abs(dx);
         if (edge === 2 && dy > 0) dy = -Math.abs(dy);
         if (edge === 3 && dx < 0) dx = Math.abs(dx);
 
-        // **CAMBIO:** Posicionar usando left/top directamente
         emojiElement.style.left = `${startX}px`;
         emojiElement.style.top = `${startY}px`;
 
@@ -228,42 +247,34 @@ document.addEventListener('DOMContentLoaded', () => {
         emojis.push({ element: emojiElement, x: startX, y: startY, dx, dy, size: emojiSize });
     }
 
-    // **CAMBIO:** Lógica de movimiento y rebote restaurada a la versión 1
     function moveAndBounceEmojis() {
         const gameWidth = challengeSection.offsetWidth;
         const gameHeight = challengeSection.offsetHeight;
 
         emojis.forEach((emojiObj) => {
-            // Actualizar posición en las variables JS
             emojiObj.x += emojiObj.dx;
             emojiObj.y += emojiObj.dy;
 
-            // Límites para la colisión con los bordes
             const maxX = gameWidth - emojiObj.size;
             const maxY = gameHeight - emojiObj.size;
 
-            // Colisión con bordes y rebote (lógica de la versión 1)
             if (emojiObj.x <= 0 || emojiObj.x >= maxX) {
-                emojiObj.dx *= -1; // Invertir dirección horizontal
-                // Corregir/clampear posición para evitar que se quede atascado fuera
+                emojiObj.dx *= -1;
                 emojiObj.x = Math.max(0, Math.min(emojiObj.x, maxX));
             }
             if (emojiObj.y <= 0 || emojiObj.y >= maxY) {
-                emojiObj.dy *= -1; // Invertir dirección vertical
-                // Corregir/clampear posición
+                emojiObj.dy *= -1;
                 emojiObj.y = Math.max(0, Math.min(emojiObj.y, maxY));
             }
 
-            // Actualizar posición en el DOM usando left/top
             emojiObj.element.style.left = `${emojiObj.x}px`;
             emojiObj.element.style.top = `${emojiObj.y}px`;
         });
     }
 
     function increaseSpeed() {
-        // (Esta función permanece igual que en la versión anterior)
         if (!gameActive) return;
-        emojiSpeedMultiplier *= 1.12; // Aumento ligeramente mayor (12%)
+        emojiSpeedMultiplier *= 1.12;
         console.log(`Speed increased. Multiplier: ${emojiSpeedMultiplier.toFixed(2)}`);
 
         const baseSpeed = 2.5;
@@ -280,9 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 5. Lógica de Puntaje y Colisiones ---
-    // (Esta sección permanece igual que en la versión anterior)
-
-    function updateScore() {
+    // (Sin cambios aquí)
+     function updateScore() {
         if (!gameActive) return;
         score++;
         updateScoreDisplay();
@@ -298,7 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < emojis.length; i++) {
             const emojiObj = emojis[i];
-            // Obtener el rectángulo del emoji (getBoundingClientRect funciona bien aquí también)
             const emojiRect = emojiObj.element.getBoundingClientRect();
 
             if (
@@ -314,16 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 6. Bucle Principal del Juego y Game Over ---
-    // (Esta sección permanece igual que en la versión anterior)
-
-    function gameLoop() {
+    // (Sin cambios aquí)
+     function gameLoop() {
         if (!gameActive) {
              if (animationFrameId) cancelAnimationFrame(animationFrameId);
              return;
         }
 
-        moveAndBounceEmojis(); // Mover y rebotar emojis (con la lógica restaurada)
-        checkCollisions();    // Verificar colisiones
+        moveAndBounceEmojis();
+        checkCollisions();
 
         animationFrameId = requestAnimationFrame(gameLoop);
     }
