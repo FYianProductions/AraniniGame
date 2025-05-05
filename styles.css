@@ -1,0 +1,214 @@
+/* Reset básico y configuración global */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Evita el resaltado azul en móviles al tocar */
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden; /* Previene scroll horizontal */
+    font-family: sans-serif;
+    background-color: #f0f0f0; /* Color de fondo base */
+}
+
+/* --- Sección de Portada --- */
+#cover-section {
+    width: 100%;
+    min-height: 100vh; /* Asegura que ocupe al menos la altura de la pantalla */
+    display: flex; /* Para organizar imagen y botón */
+    flex-direction: column; /* Apila imagen y botón verticalmente */
+    align-items: center; /* Centra el contenedor del botón */
+    padding-bottom: 20px; /* Espacio extra abajo */
+}
+
+#cover-image {
+    display: block;
+    /* Imagen responsive que ocupa el ancho */
+    max-width: 100%;
+    height: auto; /* Mantiene la proporción */
+    width: 100%; /* Asegura que llene el ancho si es pequeña */
+}
+
+/* Contenedor del botón "Jugar" */
+#button-container {
+    /* Fondo semitransparente */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 25px;
+    border-radius: 15px;
+    margin: 30px 20px 0 20px; /* Margen superior, horizontal, inferior */
+    text-align: center; /* Centra el botón dentro del contenedor */
+    width: calc(100% - 40px); /* Ancho menos los márgenes horizontales */
+    max-width: 500px; /* Limita el ancho en pantallas grandes */
+}
+
+/* Botón "Jugar" con diseño atractivo */
+#play-button {
+    padding: 15px 30px;
+    font-size: 1.2rem; /* Tamaño de fuente */
+    color: #fff; /* Color de texto */
+    background-color: #6b7e1d; /* Color de fondo naranja */
+    border: none; /* Sin borde */
+    cursor: pointer; /* Cursor de mano */
+    /* Bordes redondeados */
+    border-radius: 25px;
+    /* Sombra suave */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    /* Transiciones suaves */
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    font-weight: bold;
+}
+
+/* Efecto al pasar el cursor (útil en escritorio) */
+#play-button:hover {
+    background-color: #e64a19; /* Naranja más oscuro */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Efecto al presionar (táctil y mouse) */
+#play-button:active {
+    background-color: ##6b7e1d; /* Naranja aún más oscuro */
+    /* Reduce ligeramente el tamaño */
+    transform: scale(0.95);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Sombra más pequeña */
+}
+
+
+/* --- Sección del Reto --- */
+#challenge-section {
+    /* Ocupa toda la pantalla cuando está visible */
+    position: fixed; /* Fijo para que no se mueva con scroll (si hubiera) */
+    top: 0;
+    left: 0;
+    width: 100%; /* 100vw puede causar problemas a veces */
+    height: 100%; /* 100vh puede ser problemático con barras de navegador móviles */
+    background-color: #282c34; /* Fondo neutro oscuro */
+    overflow: hidden; /* Muy importante para contener los elementos */
+    z-index: 20; /* Por encima de la portada */
+}
+
+/* Clase helper para ocultar elementos */
+.hidden {
+    display: none !important;
+}
+
+/* --- Jugador --- */
+#player {
+    position: absolute;
+    /* Tamaño adaptable con máximo */
+    width: 12vw; /* Ancho relativo al viewport */
+    max-width: 60px; /* Tamaño máximo */
+    height: auto; /* Mantiene proporción */
+    /* Posición inicial (se ajustará con JS) */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    /* Optimización táctil: deshabilita acciones del navegador (scroll, zoom) al tocar */
+    touch-action: none;
+    user-select: none; /* Evita seleccionar la imagen */
+    -webkit-user-drag: none; /* Evita el arrastre fantasma en Webkit */
+    z-index: 30;
+    /* El cursor no aplica en táctil, pero útil en escritorio */
+    cursor: grab;
+}
+
+#player img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none; /* Los eventos táctiles/mouse irán al div #player */
+}
+
+/* --- Emojis de Fuego --- */
+.fire-emoji {
+    position: absolute;
+    /* AJUSTE: Reducir el tamaño de la fuente para hacer el emoji más pequeño */
+    font-size: 1rem;  /* Antes era 2.5rem */
+    user-select: none;
+    z-index: 25;
+    text-shadow: 0 0 4px orange; /* Reducir un poco el brillo para tamaño menor */
+    /* La posición se establecerá con JS */
+}
+
+/* --- Display del Puntaje --- */
+#score-display {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    color: white;
+    font-size: 1.4rem;
+    font-weight: bold;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente */
+    padding: 8px 12px;
+    border-radius: 8px;
+    z-index: 40; /* Por encima de todo */
+    text-shadow: 1px 1px 2px black;
+}
+
+/* --- Modal "Volver a Intentar" --- */
+#modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro semitransparente */
+    display: flex; /* Para centrar el contenido */
+    justify-content: center;
+    align-items: center;
+    z-index: 50; /* Por encima de todo, incluido el puntaje */
+    padding: 20px; /* Espacio por si el modal es grande */
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    max-width: 90%; /* Limita el ancho en móviles */
+    width: 300px; /* Ancho base */
+}
+
+.modal-content h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+#final-score {
+    font-weight: bold;
+    font-size: 1.3rem;
+    color: #6b7e1d;
+    margin-bottom: 10px;
+}
+
+/* Botón "Reiniciar" dentro del modal */
+#retry-button {
+    padding: 12px 25px;
+    font-size: 1.1rem;
+    color: #fff;
+    background-color: #4CAF50; /* Verde */
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+#retry-button:hover {
+    background-color: #45a049; /* Verde más oscuro */
+}
+
+#retry-button:active {
+    background-color: #3e8e41; /* Verde aún más oscuro */
+    transform: scale(0.96);
+}
